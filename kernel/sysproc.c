@@ -105,3 +105,12 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64 sys_setpriority(void) {
+  int priority;
+  argint(0, &priority);          // get the argument
+  if(priority < 0 || priority > 19)
+    return -1;                   // validate range
+  myproc()->priority = priority;
+  return 0;
+}
