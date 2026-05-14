@@ -1,137 +1,149 @@
+Copy and paste this exactly into the GitHub editor:
+
+---
+
+```markdown
 # Priority-Based Process Management in xv6
 
-## Overview
-This project modifies the xv6 operating system scheduler to support priority-based process scheduling with aging, multiple scheduling modes, and dynamic priority management via system calls.
+## What is this project?
 
-By default, xv6 uses round-robin scheduling — every process gets equal CPU time regardless of importance. This project replaces that with a priority-aware scheduler where each process has a priority value (0 = highest, 19 = lowest), and the scheduler always runs the most urgent process first.
+xv6 normally schedules processes using round-robin — every process takes turns getting the CPU, no matter how important or urgent it is. That means a critical process has to wait in line behind everything else.
 
----
+I changed that.
 
-## Features
-- Priority scheduling — processes with lower priority numbers run first
-- 4 scheduler modes switchable at runtime
-- Aging — prevents starvation by boosting waiting processes over time
-- 3 new system calls — setpriority, getpriority, setsched
-- 3 test programs — priotest, schedtest, finaltest
+This project adds a real priority system to xv6. Every process gets a priority number from **0 (most urgent)** to **19 (least urgent)**. The scheduler always picks the most important process first. We also added **aging** so that low-priority processes never get stuck waiting forever.
 
 ---
 
-## Scheduler Modes
+## What i Built
 
-| Mode | Name | Description |
-|------|------|-------------|
-| 0 | Non-Preemptive | Runs highest priority process to completion |
-| 1 | Preemptive | Higher priority process preempts running one |
-| 2 | Round-Robin | Equal priority processes take fair turns |
-| 3 | Aging (default) | Priority + boost every 50 ticks to prevent starvation |
+-  A priority-aware scheduler that always runs the highest priority process first
+-  4 scheduling modes switchable at runtime
+-  Aging to prevent starvation — low priority processes eventually get their turn
+-  3 new system calls so user programs can control their own priority
+-  3 test programs that prove everything works
+
+---
+
+## The 4 Scheduling Modes
+
+| Mode | Name | What it does |
+|------|------|--------------|
+| `0` | Non-Preemptive | Runs the highest priority process until it gives up the CPU |
+| `1` | Preemptive | A higher priority process can interrupt a running one |
+| `2` | Round-Robin | Processes at the same priority level take fair turns |
+| `3` | **Aging (default)** | Priority scheduling + processes get boosted after waiting 50 ticks |
+
+> Mode 3 is the default when xv6 boots.
 
 ---
 
 ## System Calls Added
 
-| Syscall | Number | Description |
-|---------|--------|-------------|
-| setpriority(int p) | 22 | Sets calling process priority (0–19) |
-| getpriority(void) | 24 | Returns calling process current priority |
-| setsched(int mode) | 25 | Switches scheduler mode at runtime |
+| System Call | Syscall # | What it does |
+|-------------|-----------|--------------|
+| `setpriority(int p)` | 22 | Set your process priority (0–19) |
+| `getpriority()` | 24 | Read your current priority |
+| `setsched(int mode)` | 25 | Switch the scheduler mode at runtime |
 
 ---
 
 ## Files Modified
 
-| File | Change |
-|------|--------|
-| kernel/proc.h | Added int priority and int waited_ticks to struct proc |
-| kernel/proc.c | Rewrote scheduler() with 4 modes + aging, initialized fields in allocproc(), added highestPriorityRunnable() helper |
-| kernel/syscall.h | Added SYS_setpriority (22), SYS_sleep (23), SYS_getpriority (24), SYS_setsched (25) |
-| kernel/syscall.c | Registered all new syscalls in dispatch table |
-| kernel/sysproc.c | Implemented sys_setpriority(), sys_getpriority(), sys_setsched() |
-| user/user.h | Declared setpriority(), getpriority(), setsched(), sleep() |
-| user/usys.pl | Added user-space stubs for all new syscalls |
-| user/priotest.c | Test: two processes with different priorities |
-| user/schedtest.c | Test: all scheduler modes |
-| user/finaltest.c | Test: full priority + round-robin demonstration |
+| File | What we changed |
+|------|-----------------|
+| `kernel/proc.h` | Added `int priority` and `int waited_ticks` to every process |
+| `kernel/proc.c` | Rewrote `scheduler()` with 4 modes + aging, added `highestPriorityRunnable()` |
+| `kernel/syscall.h` | Registered new syscall numbers |
+| `kernel/syscall.c` | Added new syscalls to the dispatch table |
+| `kernel/sysproc.c` | Implemented `sys_setpriority()`, `sys_getpriority()`, `sys_setsched()` |
+| `user/user.h` | Declared new syscalls for user programs |
+| `user/usys.pl` | Added user-space stubs |
+| `user/priotest.c` | Test program 1 |
+| `user/schedtest.c` | Test program 2 |
+| `user/finaltest.c` | Test program 3 |
 
 ---
 
 ## How to Run
 
-Build and boot xv6:
+**Boot xv6:**
+```bash
 make qemu
+```
 
-Run test programs inside xv6:
+**Run the test programs inside xv6:**
+```
 $ priotest
 $ schedtest
 $ finaltest
+```
 
-Exit xv6: Ctrl+A then X
+**Exit:** `Ctrl+A` then `X`
 
 ---
 
 ## Test Results
 
-### priotest
+### `priotest` — Does priority work?
+Two processes: HIGH (priority 5) vs LOW (priority 15)
+
+```
 HIGH priority process running: 0
 LOW priority process running: 0
 HIGH priority process running: 1
 LOW priority process running: 1
-HIGH priority process running: 2
-LOW priority process running: 2
 Done.
+```
+>  HIGH always runs before LOW in every round.
 
-Result: HIGH always runs before LOW in every round.
+---
 
-### schedtest
-=== Scheduler Mode Test ===
+### `schedtest` — Do the modes work?
+
+```
 -- Mode 3: Priority with Aging --
 HIGH (priority 5) running
 HIGH: 0
 LOW (priority 15) running
 LOW: 0
-HIGH: 1
-LOW: 1
 -- Mode 2: Round Robin --
 P1 (prio 5): 0
 P2 (prio 5): 0
-P1 (prio 5): 1
-P2 (prio 5): 1
 Done.
+```
+>  Aging prevents starvation. Round-robin gives equal processes fair turns.
 
-Result: Aging prevents starvation. Round-robin gives equal processes fair turns.
+---
 
-### finaltest
+### `finaltest` — Full demonstration
+
+```
 =========================================
    Priority-Based Process Scheduler Test
 =========================================
-Test 1: Two processes with different priorities
-Process A -> priority 3 (HIGH)
-Process B -> priority 18 (LOW)
 [A] My priority is: 3
 [A] HIGH priority running: step 1
 [B] My priority is: 18
 [B] LOW priority running: step 1
-[A] HIGH priority running: step 2
-[B] LOW priority running: step 2
-[A] Done.
-[B] Done.
-Test 2: Equal priority - Round Robin
 [C] Equal priority running: step 1
 [D] Equal priority running: step 1
-[C] Equal priority running: step 2
-[D] Equal priority running: step 2
 =========================================
    All tests passed successfully!
 =========================================
+```
+>  getpriority() works. A always runs before B. C and D alternate fairly.
 
 ---
 
 ## Design Decisions
-- Default priority = 10 so new processes start at medium priority
-- Priority range 0–19 mirrors Linux nice values
-- Aging threshold = 50 ticks balances responsiveness with fairness
-- sched_mode global variable allows runtime switching without recompiling
+
+- **Default priority = 10** — new processes start in the middle, not too high or too low
+- **Range 0–19** — inspired by Linux nice values
+- **Aging threshold = 50 ticks** — low enough to help starving processes quickly, high enough to avoid constant reshuffling
 
 ---
 
 ## Branch
-priority-schedular
+> `priority-schedular`
+```
