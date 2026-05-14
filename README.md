@@ -1,124 +1,156 @@
-Copy and paste this exactly into the GitHub editor:
-
----
-
-```markdown
 # Priority-Based Process Management in xv6
 
-## What is this project?
-
-xv6 normally schedules processes using round-robin — every process takes turns getting the CPU, no matter how important or urgent it is. That means a critical process has to wait in line behind everything else.
-
-I changed that.
-
-This project adds a real priority system to xv6. Every process gets a priority number from **0 (most urgent)** to **19 (least urgent)**. The scheduler always picks the most important process first. We also added **aging** so that low-priority processes never get stuck waiting forever.
+> Enhancing the xv6 operating system scheduler with **priority scheduling, aging, and dynamic runtime scheduling modes**.
 
 ---
 
-## What i Built
+## Overview
 
--  A priority-aware scheduler that always runs the highest priority process first
--  4 scheduling modes switchable at runtime
--  Aging to prevent starvation — low priority processes eventually get their turn
--  3 new system calls so user programs can control their own priority
--  3 test programs that prove everything works
+The default xv6 scheduler uses a **round-robin scheduling algorithm**, where each runnable process receives CPU time in equal rotation regardless of its importance.
+
+This project replaces that behavior with a **priority-based scheduling system**, allowing the operating system to make smarter scheduling decisions based on process urgency.
+
+Each process is assigned a priority value from:
+
+- **0** → Highest priority  
+- **19** → Lowest priority  
+
+The scheduler always selects the highest-priority runnable process first.
+
+To prevent starvation, an **aging mechanism** was implemented to gradually boost long-waiting processes.
 
 ---
 
-## The 4 Scheduling Modes
+## Features
 
-| Mode | Name | What it does |
-|------|------|--------------|
-| `0` | Non-Preemptive | Runs the highest priority process until it gives up the CPU |
-| `1` | Preemptive | A higher priority process can interrupt a running one |
-| `2` | Round-Robin | Processes at the same priority level take fair turns |
-| `3` | **Aging (default)** | Priority scheduling + processes get boosted after waiting 50 ticks |
+- Priority-aware CPU scheduling
+- Four scheduling modes selectable at runtime
+- Aging mechanism to prevent starvation
+- New system calls for priority and scheduler control
+- User-space test programs for validation
+- Dynamic runtime switching between scheduling policies
 
-> Mode 3 is the default when xv6 boots.
+---
+
+## Scheduling Modes
+
+| Mode | Name | Description |
+|------|------|-------------|
+| `0` | Non-Preemptive Priority | Runs the highest-priority process until it voluntarily yields |
+| `1` | Preemptive Priority | Higher-priority processes can interrupt running lower-priority ones |
+| `2` | Round Robin | Processes with equal priority share CPU fairly |
+| `3` | Priority with Aging (**Default**) | Priority scheduling with automatic boosting after waiting 50 ticks |
+
+> **Default mode:** `3` (Priority Scheduling with Aging)
 
 ---
 
 ## System Calls Added
 
-| System Call | Syscall # | What it does |
-|-------------|-----------|--------------|
-| `setpriority(int p)` | 22 | Set your process priority (0–19) |
-| `getpriority()` | 24 | Read your current priority |
-| `setsched(int mode)` | 25 | Switch the scheduler mode at runtime |
+| System Call | Number | Description |
+|-------------|--------|-------------|
+| `setpriority(int p)` | 22 | Sets the calling process priority (0–19) |
+| `getpriority()` | 24 | Returns the current process priority |
+| `setsched(int mode)` | 25 | Switches scheduler mode at runtime |
 
 ---
 
-## Files Modified
+## Modified Files
 
-| File | What we changed |
-|------|-----------------|
-| `kernel/proc.h` | Added `int priority` and `int waited_ticks` to every process |
-| `kernel/proc.c` | Rewrote `scheduler()` with 4 modes + aging, added `highestPriorityRunnable()` |
+| File | Modification |
+|------|-------------|
+| `kernel/proc.h` | Added `priority` and `waited_ticks` fields |
+| `kernel/proc.c` | Reimplemented scheduler logic and added aging |
 | `kernel/syscall.h` | Registered new syscall numbers |
-| `kernel/syscall.c` | Added new syscalls to the dispatch table |
-| `kernel/sysproc.c` | Implemented `sys_setpriority()`, `sys_getpriority()`, `sys_setsched()` |
-| `user/user.h` | Declared new syscalls for user programs |
-| `user/usys.pl` | Added user-space stubs |
-| `user/priotest.c` | Test program 1 |
-| `user/schedtest.c` | Test program 2 |
-| `user/finaltest.c` | Test program 3 |
+| `kernel/syscall.c` | Added syscall dispatch entries |
+| `kernel/sysproc.c` | Implemented syscall handlers |
+| `user/user.h` | Added syscall declarations |
+| `user/usys.pl` | Added user-space syscall stubs |
+| `user/priotest.c` | Priority scheduling validation |
+| `user/schedtest.c` | Scheduling mode validation |
+| `user/finaltest.c` | Full system demonstration |
 
 ---
 
-## How to Run
+## Running the Project
 
-**Boot xv6:**
+### Build and launch xv6
+
 ```bash
 make qemu
 ```
 
-**Run the test programs inside xv6:**
-```
-$ priotest
-$ schedtest
-$ finaltest
+### Run test programs
+
+```bash
+priotest
+schedtest
+finaltest
 ```
 
-**Exit:** `Ctrl+A` then `X`
+### Exit xv6
+
+```bash
+Ctrl + A, then X
+```
 
 ---
 
 ## Test Results
 
-### `priotest` — Does priority work?
-Two processes: HIGH (priority 5) vs LOW (priority 15)
+## 1. Priority Scheduling Test (`priotest`)
 
-```
+Tests whether higher-priority processes execute before lower-priority ones.
+
+### Output
+
+```text
 HIGH priority process running: 0
 LOW priority process running: 0
 HIGH priority process running: 1
 LOW priority process running: 1
 Done.
 ```
->  HIGH always runs before LOW in every round.
+
+### Result
+
+High-priority processes consistently execute before low-priority processes.
 
 ---
 
-### `schedtest` — Do the modes work?
+## 2. Scheduler Modes Test (`schedtest`)
 
-```
+Validates switching between scheduling modes.
+
+### Output
+
+```text
 -- Mode 3: Priority with Aging --
 HIGH (priority 5) running
 HIGH: 0
 LOW (priority 15) running
 LOW: 0
+
 -- Mode 2: Round Robin --
 P1 (prio 5): 0
 P2 (prio 5): 0
 Done.
 ```
->  Aging prevents starvation. Round-robin gives equal processes fair turns.
+
+### Result
+
+- Aging prevents starvation  
+- Round-robin ensures fairness among equal-priority processes
 
 ---
 
-### `finaltest` — Full demonstration
+## 3. Full Integration Test (`finaltest`)
 
-```
+Demonstrates all implemented features together.
+
+### Output
+
+```text
 =========================================
    Priority-Based Process Scheduler Test
 =========================================
@@ -132,18 +164,51 @@ Done.
    All tests passed successfully!
 =========================================
 ```
->  getpriority() works. A always runs before B. C and D alternate fairly.
+
+### Result
+
+- `getpriority()` works correctly  
+- Higher-priority processes execute first  
+- Equal-priority processes alternate fairly  
+- Scheduler switching functions as expected
 
 ---
 
 ## Design Decisions
 
-- **Default priority = 10** — new processes start in the middle, not too high or too low
-- **Range 0–19** — inspired by Linux nice values
-- **Aging threshold = 50 ticks** — low enough to help starving processes quickly, high enough to avoid constant reshuffling
+### Default Priority = `10`
+
+New processes begin with medium priority to ensure balanced scheduling.
+
+### Priority Range = `0–19`
+
+Inspired by Linux **nice values**, providing clear granularity.
+
+### Aging Threshold = `50 ticks`
+
+Chosen to:
+
+- Prevent starvation
+- Avoid excessive priority reshuffling
+- Preserve scheduler stability
 
 ---
 
 ## Branch
-> `priority-schedular`
+
+```bash
+priority-scheduler
 ```
+
+---
+
+## Key Learning Outcomes
+
+Through this project, I gained practical experience with:
+
+- Operating system scheduler design
+- Process management in xv6
+- Kernel-level system call implementation
+- Starvation prevention techniques
+- Runtime scheduling policy control
+- Low-level OS debugging and testing
