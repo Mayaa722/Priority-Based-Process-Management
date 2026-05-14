@@ -102,7 +102,8 @@ extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_setpriority(void);
 extern uint64 sys_close(void);
-
+extern uint64 sys_getpriority(void);
+extern uint64 sys_setsched(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -130,6 +131,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_setpriority]  sys_setpriority,
 [SYS_sleep] sys_pause,
+[SYS_getpriority] sys_getpriority,
+[SYS_setsched] sys_setsched,
 };
 
 void

@@ -198,6 +198,7 @@ UPROGS=\
 	$U/_lab5\
 	$U/_lab6\
 	$U/_priotest\
+	$U/_schedtest\
 
 ifeq ($(LAB),util)
 UPROGS += \

@@ -124,6 +124,7 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->priority = 10;
+  p->waited_ticks = 0;
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -409,7 +410,22 @@ kwait(uint64 addr)
     sleep(p, &wait_lock);  //DOC: wait-sleep
   }
 }
+int sched_mode = 3;  // 0=non-preemptive, 1=preemptive, 2=round-robin, 3=aging
 
+struct proc*
+highestPriorityRunnable(void)
+{
+  struct proc *p, *best = 0;
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->state == RUNNABLE){
+      if(best == 0 || p->priority < best->priority)
+        best = p;
+    }
+    release(&p->lock);
+  }
+  return best;
+}
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -425,30 +441,64 @@ void scheduler(void) {
   for(;;){
     intr_on();
 
-    // Find the RUNNABLE process with the lowest priority number
-    chosen = 0;
-    for(p = proc; p < &proc[NPROC]; p++){
-      acquire(&p->lock);
-      if(p->state == RUNNABLE){
-        if(chosen == 0 || p->priority < chosen->priority){
-          if(chosen != 0)
-            release(&chosen->lock);  // release previous candidate
-          chosen = p;
-          // keep chosen's lock held
-        } else {
-          release(&p->lock);
+    // Aging: boost priority of processes waiting too long
+    if(sched_mode == 3){
+      for(p = proc; p < &proc[NPROC]; p++){
+        acquire(&p->lock);
+        if(p->state == RUNNABLE){
+          p->waited_ticks++;
+          if(p->waited_ticks >= 50 && p->priority > 1){
+            p->priority--;
+            p->waited_ticks = 0;
+          }
         }
-      } else {
+        release(&p->lock);
+      }
+    }
+
+    // Find best process based on mode
+    chosen = 0;
+    int best_prio = 100;
+
+    if(sched_mode == 2){
+      // Round-robin: find best priority level, pick first at that level
+      for(p = proc; p < &proc[NPROC]; p++){
+        acquire(&p->lock);
+        if(p->state == RUNNABLE && p->priority < best_prio)
+          best_prio = p->priority;
+        release(&p->lock);
+      }
+      for(p = proc; p < &proc[NPROC]; p++){
+        acquire(&p->lock);
+        if(p->state == RUNNABLE && p->priority == best_prio){
+          chosen = p;
+          release(&p->lock);
+          break;
+        }
+        release(&p->lock);
+      }
+    } else {
+      // Modes 0, 1, 3: pick highest priority (lowest number)
+      for(p = proc; p < &proc[NPROC]; p++){
+        acquire(&p->lock);
+        if(p->state == RUNNABLE && p->priority < best_prio){
+          best_prio = p->priority;
+          chosen = p;
+        }
         release(&p->lock);
       }
     }
 
     // Run the chosen process
     if(chosen != 0){
-      chosen->state = RUNNING;
-      c->proc = chosen;
-      swtch(&c->context, &chosen->context);
-      c->proc = 0;
+      acquire(&chosen->lock);
+      if(chosen->state == RUNNABLE){
+        chosen->state = RUNNING;
+        chosen->waited_ticks = 0;
+        c->proc = chosen;
+        swtch(&c->context, &chosen->context);
+        c->proc = 0;
+      }
       release(&chosen->lock);
     }
   }

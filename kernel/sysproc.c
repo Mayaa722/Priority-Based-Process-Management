@@ -114,3 +114,17 @@ uint64 sys_setpriority(void) {
   myproc()->priority = priority;
   return 0;
 }
+
+uint64 sys_getpriority(void) {
+  return myproc()->priority;
+}
+
+uint64 sys_setsched(void) {
+  int mode;
+  argint(0, &mode);
+  if(mode < 0 || mode > 3)
+    return -1;
+  extern int sched_mode;
+  sched_mode = mode;
+  return 0;
+}

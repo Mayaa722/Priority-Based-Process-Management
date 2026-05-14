@@ -44,3 +44,5 @@ entry("pause");
 entry("uptime");
 entry("sleep");
 entry("setpriority");
+entry("getpriority");
+entry("setsched");
