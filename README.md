@@ -1,91 +1,87 @@
 # Priority-Based Process Management in xv6
-
-> Enhancing the xv6 operating system scheduler with **priority scheduling, aging, and dynamic runtime scheduling modes**.
-
----
-
-## Overview
-
-The default xv6 scheduler uses a **round-robin scheduling algorithm**, where each runnable process receives CPU time in equal rotation regardless of its importance.
-
-This project replaces that behavior with a **priority-based scheduling system**, allowing the operating system to make smarter scheduling decisions based on process urgency.
-
-Each process is assigned a priority value from:
-
-- **0** → Highest priority  
-- **19** → Lowest priority  
-
-The scheduler always selects the highest-priority runnable process first.
-
-To prevent starvation, an **aging mechanism** was implemented to gradually boost long-waiting processes.
+> Modifying the xv6 OS scheduler to support process priorities, aging, and dynamic scheduling modes.
 
 ---
 
-## Features
+## What is this project?
 
-- Priority-aware CPU scheduling
-- Four scheduling modes selectable at runtime
-- Aging mechanism to prevent starvation
-- New system calls for priority and scheduler control
-- User-space test programs for validation
-- Dynamic runtime switching between scheduling policies
+xv6 normally schedules processes using **round-robin** — every process takes turns getting the CPU no matter how important it is. A critical process has to wait in line behind everything else.
+
+This project replaces the default xv6 scheduler with a **priority-based process management system**.
+
+Each process receives a priority value from:
+
+- **0** → Highest priority
+- **19** → Lowest priority
+
+The scheduler always selects the highest-priority runnable process first. To prevent starvation, the project also implements **aging**, allowing long-waiting processes to gradually gain higher priority over time.
 
 ---
 
-## Scheduling Modes
+## What I Built
+
+- A priority-aware scheduler that always executes the highest priority process first
+- 4 scheduling modes switchable at runtime
+- Aging support to prevent starvation
+- 3 new system calls for runtime process management
+- Multiple testing programs to validate scheduler behavior
+
+---
+
+## The 4 Scheduling Modes
 
 | Mode | Name | Description |
 |------|------|-------------|
-| `0` | Non-Preemptive Priority | Runs the highest-priority process until it voluntarily yields |
-| `1` | Preemptive Priority | Higher-priority processes can interrupt running lower-priority ones |
-| `2` | Round Robin | Processes with equal priority share CPU fairly |
-| `3` | Priority with Aging (**Default**) | Priority scheduling with automatic boosting after waiting 50 ticks |
+| `0` | Non-Preemptive Priority | Highest-priority process runs until it voluntarily yields |
+| `1` | Preemptive Priority | Higher-priority processes can interrupt running processes |
+| `2` | Round-Robin | Processes with equal priority share CPU fairly |
+| `3` | Aging Scheduler *(Default)* | Priority scheduling with automatic aging every 50 ticks |
 
-> **Default mode:** `3` (Priority Scheduling with Aging)
+> Mode 3 is the default scheduler when xv6 boots.
 
 ---
 
 ## System Calls Added
 
-| System Call | Number | Description |
-|-------------|--------|-------------|
-| `setpriority(int p)` | 22 | Sets the calling process priority (0–19) |
-| `getpriority()` | 24 | Returns the current process priority |
-| `setsched(int mode)` | 25 | Switches scheduler mode at runtime |
+| System Call | Syscall # | Description |
+|-------------|-----------|-------------|
+| `setpriority(int p)` | `22` | Set the current process priority |
+| `getpriority()` | `24` | Return the current process priority |
+| `setsched(int mode)` | `25` | Change the scheduler mode at runtime |
 
 ---
 
-## Modified Files
+## Files Modified
 
-| File | Modification |
-|------|-------------|
+| File | Changes |
+|------|---------|
 | `kernel/proc.h` | Added `priority` and `waited_ticks` fields |
-| `kernel/proc.c` | Reimplemented scheduler logic and added aging |
+| `kernel/proc.c` | Reimplemented `scheduler()` and added priority selection logic |
 | `kernel/syscall.h` | Registered new syscall numbers |
-| `kernel/syscall.c` | Added syscall dispatch entries |
-| `kernel/sysproc.c` | Implemented syscall handlers |
-| `user/user.h` | Added syscall declarations |
-| `user/usys.pl` | Added user-space syscall stubs |
-| `user/priotest.c` | Priority scheduling validation |
-| `user/schedtest.c` | Scheduling mode validation |
-| `user/finaltest.c` | Full system demonstration |
+| `kernel/syscall.c` | Added syscall mappings |
+| `kernel/sysproc.c` | Implemented scheduler-related system calls |
+| `user/user.h` | Declared new user-space functions |
+| `user/usys.pl` | Generated syscall stubs |
+| `user/priotest.c` | Priority scheduling test |
+| `user/schedtest.c` | Scheduler mode test |
+| `user/finaltest.c` | Complete system demonstration |
 
 ---
 
-## Running the Project
+## How to Run
 
-### Build and launch xv6
+### Boot xv6
 
 ```bash
 make qemu
 ```
 
-### Run test programs
+### Run Tests Inside xv6
 
 ```bash
-priotest
-schedtest
-finaltest
+$ priotest
+$ schedtest
+$ finaltest
 ```
 
 ### Exit xv6
@@ -98,11 +94,9 @@ Ctrl + A, then X
 
 ## Test Results
 
-## 1. Priority Scheduling Test (`priotest`)
+### `priotest` — Priority Scheduling
 
-Tests whether higher-priority processes execute before lower-priority ones.
-
-### Output
+Two processes: HIGH priority (`5`) vs LOW priority (`15`)
 
 ```text
 HIGH priority process running: 0
@@ -112,17 +106,11 @@ LOW priority process running: 1
 Done.
 ```
 
-### Result
-
-High-priority processes consistently execute before low-priority processes.
+> Higher-priority processes always execute before lower-priority processes.
 
 ---
 
-## 2. Scheduler Modes Test (`schedtest`)
-
-Validates switching between scheduling modes.
-
-### Output
+### `schedtest` — Scheduling Modes
 
 ```text
 -- Mode 3: Priority with Aging --
@@ -137,70 +125,107 @@ P2 (prio 5): 0
 Done.
 ```
 
-### Result
-
-- Aging prevents starvation  
-- Round-robin ensures fairness among equal-priority processes
+> Aging prevents starvation, while Round-Robin ensures fairness between equal-priority processes.
 
 ---
 
-## 3. Full Integration Test (`finaltest`)
-
-Demonstrates all implemented features together.
-
-### Output
+### `finaltest` — Complete Scheduler Demonstration
 
 ```text
 =========================================
    Priority-Based Process Scheduler Test
 =========================================
+
 [A] My priority is: 3
 [A] HIGH priority running: step 1
+
 [B] My priority is: 18
 [B] LOW priority running: step 1
+
 [C] Equal priority running: step 1
 [D] Equal priority running: step 1
+
 =========================================
    All tests passed successfully!
 =========================================
 ```
 
-### Result
-
-- `getpriority()` works correctly  
-- Higher-priority processes execute first  
-- Equal-priority processes alternate fairly  
-- Scheduler switching functions as expected
+> `getpriority()` correctly returns process priorities.  
+> High-priority processes execute first, while equal-priority processes alternate fairly.
 
 ---
 
 ## Design Decisions
 
-### Default Priority = `10`
+- **Default Priority = 10**  
+  New processes start with a balanced mid-range priority.
 
-New processes begin with medium priority to ensure balanced scheduling.
+- **Priority Range = 0–19**  
+  Inspired by Linux-style nice values.
 
-### Priority Range = `0–19`
-
-Inspired by Linux **nice values**, providing clear granularity.
-
-### Aging Threshold = `50 ticks`
-
-Chosen to:
-
-- Prevent starvation
-- Avoid excessive priority reshuffling
-- Preserve scheduler stability
+- **Aging Threshold = 50 Ticks**  
+  Waiting processes gradually gain higher priority to prevent starvation.
 
 ---
 
 ## Branch
 
 ```bash
-priority-scheduler
+priority-schedular
 ```
 
 ---
+
+## Future Improvements
+
+- Multi-Level Feedback Queue (MLFQ)
+- Dynamic time quantum support
+- CPU usage statistics
+- Priority inheritance mechanisms
+- Per-process scheduling policies
+
+---
+
+## Repository Structure
+
+```text
+xv6-riscv/
+├── kernel/
+│   ├── proc.c
+│   ├── proc.h
+│   ├── syscall.c
+│   ├── syscall.h
+│   └── sysproc.c
+├── user/
+│   ├── user.h
+│   ├── usys.pl
+│   ├── priotest.c
+│   ├── schedtest.c
+│   └── finaltest.c
+├── Makefile
+└── README.md
+```
+
+---
+
+## Summary
+
+This project transforms the default xv6 scheduler into a fully functional **priority-based scheduling system** with:
+
+- Dynamic scheduling modes
+- Runtime scheduler switching
+- Aging support
+- Fair Round-Robin scheduling
+- User-level priority management
+- Starvation prevention
+
+The implementation demonstrates core operating system concepts including:
+
+- CPU scheduling
+- Process management
+- System calls
+- Concurrency handling
+- Fairness and starvation prevention
 
 ## Key Learning Outcomes
 
