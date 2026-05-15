@@ -200,6 +200,7 @@ UPROGS=\
 	$U/_priotest\
 	$U/_schedtest\
 	$U/_finaltest\
+	$U/_preempttest\
 
 ifeq ($(LAB),util)
 UPROGS += \
@@ -207,8 +208,6 @@ UPROGS += \
 	$U/_sixfive\
 	$U/_find
 endif
-### ENDIF
-
 
 ifeq ($(LAB),syscall)
 UPROGS += \
