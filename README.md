@@ -66,6 +66,7 @@ The scheduler always selects the highest-priority runnable process first. To pre
 | `user/priotest.c` | Priority scheduling test |
 | `user/schedtest.c` | Scheduler mode test |
 | `user/finaltest.c` | Complete system demonstration |
+| `user/preempttest.c` | Test program 4 — proves Mode 1 preemption works |
 
 ---
 
@@ -82,6 +83,7 @@ make qemu
 ```bash
 $ priotest
 $ schedtest
+$ preempttest
 $ finaltest
 ```
 
@@ -161,6 +163,33 @@ Done.
 
 ---
 
+### `preempttest` — Mode 1 Preemption Proof
+
+LOW priority process (`15`) starts running heavy work. HIGH priority process (`2`) spawns and immediately interrupts it.
+
+```text
+=== Preemption Test (Mode 1) ===
+Switching to preemptive mode...
+
+[LOW]  priority=15 started, running...
+[HIGH] priority=2 started — preempting LOW!
+
+[HIGH] running step 1
+[HIGH] running step 2
+[HIGH] running step 3
+[HIGH] running step 4
+[HIGH] running step 5
+
+[HIGH] done
+[LOW]  finished
+
+=== HIGH preempted LOW successfully! ===
+```
+
+> LOW started first and was running heavy work. HIGH spawned and immediately interrupted it. HIGH ran all 5 steps while LOW was frozen. Only after HIGH finished did LOW complete. Mode 1 preemption is proven.
+
+---
+
 ## Design Decisions
 
 - **Default Priority = 10**  
@@ -208,6 +237,7 @@ xv6-riscv/
 │   ├── usys.pl
 │   ├── priotest.c
 │   ├── schedtest.c
+│   ├── preempttest.c
 │   └── finaltest.c
 ├── Makefile
 └── README.md
@@ -225,6 +255,7 @@ This project transforms the default xv6 scheduler into a fully functional **prio
 - Fair Round-Robin scheduling
 - User-level priority management
 - Starvation prevention
+- True kernel-level preemption
 
 The implementation demonstrates core operating system concepts including:
 
@@ -233,6 +264,7 @@ The implementation demonstrates core operating system concepts including:
 - System calls
 - Concurrency handling
 - Fairness and starvation prevention
+- Kernel trap handling and preemption
 
 ---
 
@@ -246,3 +278,5 @@ Through this project, I gained practical experience with:
 - Starvation prevention techniques
 - Runtime scheduling policy control
 - Low-level OS debugging and testing
+- Kernel trap and interrupt handling
+- Preemptive scheduling implementation
