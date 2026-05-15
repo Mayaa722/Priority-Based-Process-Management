@@ -25,8 +25,8 @@ char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
 int sleep(int);
-int setpriority(int);
-int getpriority(void);
+int setpriority(int, int);
+int getpriority(int);
 int setsched(int);
 
 // ulib.c

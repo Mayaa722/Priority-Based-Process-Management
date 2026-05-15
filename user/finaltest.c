@@ -13,8 +13,8 @@ int main() {
 
   int pid1 = fork();
   if(pid1 == 0){
-    setpriority(3);
-    printf("[A] My priority is: %d\n", getpriority());
+    setpriority(getpid(), 3);
+    printf("[A] My priority is: %d\n", getpriority(getpid()));
     for(int i = 0; i < 4; i++){
       printf("[A] HIGH priority running: step %d\n", i+1);
       sleep(8);
@@ -25,8 +25,8 @@ int main() {
 
   int pid2 = fork();
   if(pid2 == 0){
-    setpriority(18);
-    printf("[B] My priority is: %d\n", getpriority());
+    setpriority(getpid(), 18);
+    printf("[B] My priority is: %d\n", getpriority(getpid()));
     for(int i = 0; i < 4; i++){
       printf("[B] LOW priority running: step %d\n", i+1);
       sleep(8);
@@ -45,7 +45,7 @@ int main() {
 
   int pid3 = fork();
   if(pid3 == 0){
-    setpriority(10);
+    setpriority(getpid(), 10);
     for(int i = 0; i < 3; i++){
       printf("[C] Equal priority running: step %d\n", i+1);
       sleep(8);
@@ -56,7 +56,7 @@ int main() {
 
   int pid4 = fork();
   if(pid4 == 0){
-    setpriority(10);
+    setpriority(getpid(), 10);
     for(int i = 0; i < 3; i++){
       printf("[D] Equal priority running: step %d\n", i+1);
       sleep(8);

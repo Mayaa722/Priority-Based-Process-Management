@@ -107,16 +107,40 @@ sys_uptime(void)
 }
 
 uint64 sys_setpriority(void) {
-  int priority;
-  argint(0, &priority);          // get the argument
+  int pid, priority;
+  argint(0, &pid);
+  argint(1, &priority);
   if(priority < 0 || priority > 19)
-    return -1;                   // validate range
-  myproc()->priority = priority;
-  return 0;
+    return -1;
+  struct proc *p;
+  extern struct proc proc[];
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid){
+      p->priority = priority;
+      release(&p->lock);
+      return 0;
+    }
+    release(&p->lock);
+  }
+  return -1;
 }
 
 uint64 sys_getpriority(void) {
-  return myproc()->priority;
+  int pid;
+  argint(0, &pid);
+  struct proc *p;
+  extern struct proc proc[];
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid){
+      int prio = p->priority;
+      release(&p->lock);
+      return prio;
+    }
+    release(&p->lock);
+  }
+  return -1;
 }
 
 uint64 sys_setsched(void) {

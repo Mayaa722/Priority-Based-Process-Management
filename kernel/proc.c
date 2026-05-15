@@ -287,6 +287,8 @@ kfork(void)
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
+  np->priority = p->priority;
+
   pid = np->pid;
 
   release(&np->lock);

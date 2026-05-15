@@ -5,7 +5,8 @@
 int main() {
   int pid1 = fork();
   if(pid1 == 0){
-    setpriority(5);   // HIGH priority child
+    setpriority(getpid(), 5);
+    printf("[A] My priority is: %d\n", getpriority(getpid()));
     for(int i = 0; i < 5; i++){
       printf("HIGH priority process running: %d\n", i);
       sleep(10);
@@ -13,9 +14,10 @@ int main() {
     exit(0);
   }
 
-  int pid2 = fork();
+int pid2 = fork();
   if(pid2 == 0){
-    setpriority(15);  // LOW priority child
+    setpriority(getpid(), 15);
+    printf("[B] My priority is: %d\n", getpriority(getpid()));
     for(int i = 0; i < 5; i++){
       printf("LOW priority process running: %d\n", i);
       sleep(10);

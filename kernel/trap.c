@@ -81,9 +81,17 @@ usertrap(void)
     kexit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
-    yield();
-
+if(which_dev == 2){
+    extern int sched_mode;
+    extern struct proc* highestPriorityRunnable(void);
+    if(sched_mode == 1){
+      struct proc *best = highestPriorityRunnable();
+      if(best != 0 && best->priority < p->priority)
+        yield();
+    } else {
+      yield();
+    }
+  }
   prepare_return();
 
   // the user page table to switch to, for trampoline.S
@@ -152,9 +160,17 @@ kerneltrap()
   }
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2 && myproc() != 0)
-    yield();
-
+  if(which_dev == 2 && myproc() != 0){
+    extern int sched_mode;
+    extern struct proc* highestPriorityRunnable(void);
+    if(sched_mode == 1){
+      struct proc *best = highestPriorityRunnable();
+      if(best != 0 && best->priority < myproc()->priority)
+        yield();
+    } else {
+      yield();
+    }
+  }
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
   w_sepc(sepc);
