@@ -45,8 +45,8 @@ The scheduler always selects the highest-priority runnable process first. To pre
 
 | System Call | Syscall # | Description |
 |-------------|-----------|-------------|
-| `setpriority(int p)` | `22` | Set the current process priority |
-| `getpriority()` | `24` | Return the current process priority |
+| `setpriority(int pid, int p)` | `22` | Set the priority of any process by PID |
+| `getpriority(int pid)` | `24` | Return the priority of any process by PID |
 | `setsched(int mode)` | `25` | Change the scheduler mode at runtime |
 
 ---
@@ -57,6 +57,7 @@ The scheduler always selects the highest-priority runnable process first. To pre
 |------|---------|
 | `kernel/proc.h` | Added `priority` and `waited_ticks` fields |
 | `kernel/proc.c` | Reimplemented `scheduler()` and added priority selection logic |
+| `kernel/trap.c` | Added preemption logic for Mode 1 in `usertrap()` and `kerneltrap()` |
 | `kernel/syscall.h` | Registered new syscall numbers |
 | `kernel/syscall.c` | Added syscall mappings |
 | `kernel/sysproc.c` | Implemented scheduler-related system calls |
@@ -99,10 +100,15 @@ Ctrl + A, then X
 Two processes: HIGH priority (`5`) vs LOW priority (`15`)
 
 ```text
+[A] My priority is: 5
 HIGH priority process running: 0
+
+[B] My priority is: 15
 LOW priority process running: 0
+
 HIGH priority process running: 1
 LOW priority process running: 1
+
 Done.
 ```
 
@@ -193,6 +199,7 @@ xv6-riscv/
 ├── kernel/
 │   ├── proc.c
 │   ├── proc.h
+│   ├── trap.c
 │   ├── syscall.c
 │   ├── syscall.h
 │   └── sysproc.c
@@ -226,6 +233,8 @@ The implementation demonstrates core operating system concepts including:
 - System calls
 - Concurrency handling
 - Fairness and starvation prevention
+
+---
 
 ## Key Learning Outcomes
 
